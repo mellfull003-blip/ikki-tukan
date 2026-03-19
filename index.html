@@ -5,87 +5,321 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>一気通貫パズル</title>
+<title>一気通貫パズル Extreme v2.1</title>
 <style>
-    :root { --man-color: #d32f2f; --pin-color: #1976d2; --bg-color: #f0f2f5; }
-    body { font-family: sans-serif; text-align: center; background: var(--bg-color); margin: 0; padding: calc(env(safe-area-inset-top) + 10px) 5px; user-select: none; -webkit-user-select: none; overflow-x: hidden; }
-    .status-info { font-size: 12px; color: #666; margin-bottom: 5px; }
-    .container { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-    .board-container { background: #fff; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 95%; max-width: 400px; }
-    .grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 2px; margin-top: 5px; }
-    .cell { aspect-ratio: 3/4; border: 1px solid #ccc; border-radius: 2px; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; background: #fafafa; }
-    .cell.man { color: var(--man-color); border-bottom: 2px solid var(--man-color); }
-    .cell.pin { color: var(--pin-color); border-bottom: 2px solid var(--pin-color); }
-    .cell.complete { background: #c8e6c9; border-color: #4caf50; }
-    #tumo-display { height: 60px; display: flex; justify-content: center; align-items: center; margin: 10px 0; }
-    .tile-graphic { width: 40px; height: 55px; border: 2px solid #333; border-radius: 5px; background: white; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); }
-    #selectArea { position: fixed; bottom: 0; left: 0; right: 0; padding: 15px; padding-bottom: calc(env(safe-area-inset-bottom) + 15px); background: rgba(255,255,255,0.95); border-top: 2px solid #ddd; z-index: 100; display: none; }
-    .selectTiles-container { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
+:root { 
+    --man-color: #d32f2f; 
+    --pin-color: #1976d2; 
+    --bg-color: #1a1a2e; /* 少し深みのある色に変更 */
+    --accent-color: #f1c40f;
+}
+body { 
+    font-family: 'Helvetica Neue', 'Hiragino Sans', sans-serif; 
+    text-align: center; 
+    background: var(--bg-color); 
+    color: white; 
+    margin: 0; 
+    padding: calc(env(safe-area-inset-top) + 10px) 5px; 
+    user-select: none; 
+    -webkit-user-select: none; 
+    overflow: hidden;
+    touch-action: manipulation; /* ダブルタップズーム防止 */
+}
+h2 { margin: 0 0 5px 0; font-size: 20px; text-shadow: 2px 2px 4px rgba(0,0,0,0.7); color: var(--accent-color); }
+.status-info { font-size: 13px; color: #ccc; margin-bottom: 5px; height: 1.2em; }
+.container { display: flex; flex-direction: column; align-items: center; gap: 8px; height: 68vh; overflow-y: auto; padding-bottom: 20px;}
+
+.board-container { background: rgba(255,255,255,0.05); padding: 8px; border-radius: 12px; width: 95%; max-width: 400px; border: 1px solid rgba(255,255,255,0.1); }
+h3 { font-size: 14px; margin: 4px 0; color: #fff; opacity: 0.9; }
+
+.grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 3px; margin-top: 5px; }
+.cell { 
+    aspect-ratio: 3/4; 
+    border: 1px solid #444; 
+    border-radius: 4px; 
+    font-size: 12px; 
+    display: flex; 
+    flex-direction: column; /* 上下に並べる */
+    align-items: center; 
+    justify-content: center; 
+    font-weight: bold; 
+    background: #0f0f0f; 
+    transition: transform 0.1s, background 0.3s;
+    line-height: 1.1;
+}
+.cell.man { color: var(--man-color); background: #fff; border-bottom: 3px solid #b71c1c; }
+.cell.pin { color: var(--pin-color); background: #fff; border-bottom: 3px solid #0d47a1; }
+.cell.reach { background: #fff9c4; animation: blink 0.4s infinite alternate; border-color: #fbc02d; color: #333; }
+.cell.complete { background: #b9f6ca; border-color: #00c853; color: #1b5e20; animation: complete-flash 0.6s ease-out; }
+
+@keyframes blink { 0% { opacity: 0.6; transform: scale(0.98); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes complete-flash { 0% { background: #fff; transform: scale(1.1); z-index: 10; } 100% { background: #b9f6ca; transform: scale(1); } }
+@keyframes bonus-glow { 0% { box-shadow: 0 0 5px var(--accent-color); } 50% { box-shadow: 0 0 20px var(--accent-color); } 100% { box-shadow: 0 0 5px var(--accent-color); } }
+
+#tumo-display { height: 80px; display: flex; justify-content: center; align-items: center; margin: 5px 0; }
+.tile-graphic { 
+    width: 48px; height: 64px; 
+    border: 2px solid #333; 
+    border-radius: 6px; 
+    background: white; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center; 
+    font-weight: bold; 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.6); 
+    font-size: 22px; 
+    color: #000; 
+    transition: transform 0.2s;
+}
+.tile-graphic.man { color: var(--man-color); }
+.tile-graphic.pin { color: var(--pin-color); }
+.suit-label { font-size: 10px; margin-top: -2px; }
+
+#effect-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; z-index: 1000; pointer-events: none; opacity: 0; transition: opacity 0.2s; }
+#effect-text { font-size: 48px; font-weight: bold; color: var(--accent-color); text-shadow: 0 0 15px #e67e22; transform: scale(0.5); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+#effect-overlay.active { opacity: 1; background: rgba(0,0,0,0.4); }
+#effect-overlay.active #effect-text { transform: scale(1.2); }
+
+#selectArea { position: fixed; bottom: 0; left: 0; right: 0; padding: 15px; padding-bottom: calc(env(safe-area-inset-bottom) + 15px); background: rgba(0,0,0,0.95); border-top: 3px solid var(--accent-color); z-index: 100; display: none; backdrop-filter: blur(8px); }
+.selectTiles-container { display: flex; justify-content: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.selectTile { cursor: pointer; border: 2px solid var(--accent-color); animation: bonus-glow 1.5s infinite; }
+.selectTile:active { transform: scale(0.9); }
 </style>
 </head>
 <body>
-    <h2>一気通貫パズル</h2>
-    <div class="status-info" id="gameStatus">読み込み中...</div>
-    <div id="tumo-display"><div id="tumo" class="tile-graphic">？</div></div>
-    <div class="container">
-        <div class="board-container"><h3>あなた (萬子)</h3><div id="playerBoard"></div></div>
-        <div class="board-container"><h3>相手 (筒子)</h3><div id="cpuBoard"></div></div>
-    </div>
-    <div id="selectArea">
-        <b>🔥 ボーナス！あと <span id="bonusCountNum"></span> 枚選択</b>
-        <div class="selectTiles-container" id="selectTilesBody"></div>
-    </div>
+
+<h2>一気通貫パズル EX</h2>
+<div class="status-info" id="gameStatus">画面をタップして対局開始</div>
+<div id="tumo-display"><div id="tumo" class="tile-graphic">？</div></div>
+
+<div class="container">
+    <div class="board-container"><h3>PLAYER (萬子)</h3><div id="playerBoard"></div></div>
+    <div class="board-container"><h3>CPU (筒子)</h3><div id="cpuBoard"></div></div>
+</div>
+
+<div id="effect-overlay"><div id="effect-text">一気通貫！</div></div>
+
+<div id="selectArea">
+    <b style="color:var(--accent-color);">🔥 BONUS! 残り <span id="bonusCountNum"></span> 枚選択</b>
+    <div class="selectTiles-container" id="selectTilesBody"></div>
+</div>
+
 <script>
+// --- サウンド管理（連続再生対応） ---
+const sounds = {
+    bgm: new Audio('bgm.mp3'),
+    place: new Audio('place.mp3'),
+    reach: new Audio('reach.mp3'),
+    complete: new Audio('complete.mp3')
+};
+sounds.bgm.loop = true; sounds.bgm.volume = 0.4;
+
+function playSfx(id) {
+    const s = sounds[id];
+    if(!s) return;
+    s.pause();
+    s.currentTime = 0;
+    s.play().catch(()=>{});
+}
+
+// --- ゲーム変数 ---
+let isStarted=false, selecting=false, bonusCount=0, rowOwner=[null,null,null,null], gameActive=true, gameTimer=null;
 const kanji=["","一","二","三","四","五","六","七","八","九"];
 let deck=[], player={board:createB(),sets:0,type:"man",name:"あなた"}, cpu={board:createB(),sets:0,type:"pin",name:"相手"};
-let selecting=false, bonusCount=0, rowOwner=[null,null,null,null], gameActive=true, gameTimer=null;
-function createB(){ return Array.from({length:4},()=>{ let r=new Array(9).fill(null); r.isComplete=false; return r; }); }
-function initDeck(){ deck=[]; for(let i=1;i<=9;i++){ for(let j=0;j<6;j++){ deck.push({num:i,type:"man"},{num:i,type:"pin"}); } } deck.sort(()=>Math.random()-0.5); }
+
+function createB(){ return Array.from({length:4},()=>{ let r=new Array(9).fill(null); r.isComplete=false; r.isReach=false; return r; }); }
+
+function initDeck(){ 
+    deck=[]; 
+    for(let i=1;i<=9;i++){ 
+        for(let j=0;j<6;j++){ 
+            deck.push({num:i,type:"man"},{num:i,type:"pin"}); 
+        } 
+    } 
+    deck.sort(()=>Math.random()-0.5); 
+}
+
+function startGame(){
+    if(isStarted) return;
+    isStarted=true;
+    document.getElementById("gameStatus").innerText="対局中...";
+    sounds.bgm.play().catch(()=>{});
+    initDeck(); 
+    updateUI();
+    gameTimer=setInterval(gameLoop, 600);
+}
+
 function gameLoop(){
-    if(!gameActive||selecting)return;
-    if(deck.length===0){ clearInterval(gameTimer); alert("山札切れ"); return; }
-    let tile=deck.pop(); let target=(tile.type==="man")?player:cpu;
-    placeTile(target,tile); showTumo(tile); updateUI();
-    document.getElementById("gameStatus").innerText=`山札: ${deck.length}枚`;
+    if(!gameActive || selecting) return;
+    if(deck.length < 2){ clearInterval(gameTimer); alert("流局（山札切れ）"); return; }
+
+    // CPUの思考: 1.リーチ優先 2.埋まっていない列優先
+    let cpuTileIdx = deck.findIndex(t => t.type === "pin");
+    if(cpuTileIdx === -1) return;
+    let cpuTile = deck.splice(cpuTileIdx, 1)[0];
+    cpuSmartPlace(cpu, cpuTile);
+
+    // プレイヤーのドロー
+    let playerTile = deck.pop(); 
+    placeTile(player, playerTile); 
+    showTumo(playerTile); 
+    
+    updateUI();
+    document.getElementById("gameStatus").innerText=`残り山札: ${deck.length}枚`;
 }
-function placeTile(target,tile){
-    for(let r=0;r<4;r++){
-        if(target.board[r].isComplete)continue;
-        if(!target.board[r][tile.num-1]){ target.board[r][tile.num-1]={...tile}; checkSet(target,r); return; }
+
+// 強化されたCPU思考ルーチン
+function cpuSmartPlace(target, tile){
+    let bestRow = -1;
+    let maxFill = -1;
+
+    // 最も完成に近い（かつ、その牌が置ける）列を探す
+    for(let i=0; i<4; i++){
+        let row = target.board[i];
+        if(row.isComplete || row[tile.num-1]) continue;
+        
+        let fillCount = row.filter(v => v !== null).length;
+        if(fillCount > maxFill){
+            maxFill = fillCount;
+            bestRow = i;
+        }
+    }
+
+    if(bestRow >= 0){
+        target.board[bestRow][tile.num-1] = {...tile};
+        checkSet(target, bestRow);
+        checkReach(target);
     }
 }
-function checkSet(target,row){
+
+function placeTile(target, tile){
+    let placed=false;
+    for(let r=0; r<4; r++){
+        if(target.board[r].isComplete) continue;
+        if(!target.board[r][tile.num-1]){ 
+            target.board[r][tile.num-1] = {...tile}; 
+            placed=true; 
+            if(isStarted) playSfx('place');
+            checkSet(target, r); 
+            break; 
+        }
+    }
+    if(placed) checkReach(target);
+}
+
+function checkReach(target){
+    for(let r=0; r<4; r++){
+        if(target.board[r].isComplete){ target.board[r].isReach=false; continue; }
+        let count = target.board[r].filter(v=>v!==null).length;
+        if(count === 8 && !target.board[r].isReach){
+            target.board[r].isReach = true;
+            if(isStarted) playSfx('reach');
+        }
+    }
+}
+
+function checkSet(target, row){
     if(target.board[row].every(v=>v!==null)){
-        target.sets++; target.board[row].isComplete=true;
-        if(!rowOwner[row]){ rowOwner[row]=target; bonusCount=2; triggerBonus(); }
-        if(target.sets===4){ gameActive=false; clearInterval(gameTimer); setTimeout(()=>{alert(target.name+"の勝利！");location.reload();},500); }
+        target.sets++; 
+        target.board[row].isComplete=true; 
+        target.board[row].isReach=false;
+        if(isStarted) playSfx('complete'); 
+        showCompleteEffect();
+        
+        // 最初の完成者ボーナス（プレイヤーのみ）
+        if(target === player && !rowOwner[row]){ 
+            rowOwner[row] = target; 
+            bonusCount = 2; 
+            triggerBonus(); 
+        } else if(!rowOwner[row]){
+            rowOwner[row] = target;
+        }
+
+        if(target.sets === 4){ 
+            gameActive=false; 
+            clearInterval(gameTimer); 
+            setTimeout(()=>{ alert(target.name + "の勝利！"); location.reload(); }, 1500);
+        }
     }
 }
-function triggerBonus(){ selecting=true; document.getElementById("selectArea").style.display="block"; showSelect(); }
+
+function showCompleteEffect(){ 
+    const overlay=document.getElementById("effect-overlay"); 
+    overlay.classList.add("active"); 
+    setTimeout(()=>overlay.classList.remove("active"), 1200); 
+}
+
+function triggerBonus(){ 
+    selecting=true; 
+    document.getElementById("selectArea").style.display="block"; 
+    showSelect(); 
+}
+
 function showSelect(){
-    let area=document.getElementById("selectTilesBody"); document.getElementById("bonusCountNum").innerText=bonusCount; area.innerHTML="";
-    deck.slice(-5).forEach(tile=>{
-        let div=document.createElement("div"); div.className=`tile-graphic ${tile.type}`; div.innerHTML=tileText(tile);
+    let area=document.getElementById("selectTilesBody"); 
+    document.getElementById("bonusCountNum").innerText=bonusCount; 
+    area.innerHTML="";
+    // 山札の最後から6枚を候補に
+    let candidates = deck.slice(-6);
+    candidates.forEach(tile=>{
+        let div=document.createElement("div"); 
+        div.className=`tile-graphic selectTile ${tile.type}`; 
+        div.innerHTML=tileText(tile);
         div.onclick=()=>{
-            if(!selecting)return; deck.splice(deck.indexOf(tile),1);
-            placeTile((tile.type==="man")?player:cpu,tile); bonusCount--; updateUI();
-            if(bonusCount<=0||deck.length===0){ selecting=false; document.getElementById("selectArea").style.display="none"; } else { showSelect(); }
+            if(!selecting) return; 
+            deck.splice(deck.indexOf(tile), 1);
+            placeTile(player, tile); 
+            bonusCount--; 
+            updateUI();
+            if(bonusCount <= 0 || deck.length === 0){ 
+                selecting=false; 
+                document.getElementById("selectArea").style.display="none"; 
+            } else { 
+                showSelect(); 
+            }
         };
         area.appendChild(div);
     });
 }
-function showTumo(t){ let el=document.getElementById("tumo"); el.className=`tile-graphic ${t.type}`; el.innerHTML=tileText(t); }
-function tileText(t){ return t.type==="man"?`${kanji[t.num]}<br>萬`:`${t.num}<br>●`; }
-function drawB(id,b){
-    const el=document.getElementById(id); el.innerHTML="";
-    b.forEach(row=>{
-        let d=document.createElement("div"); d.className="grid";
-        row.forEach(cell=>{ let c=document.createElement("div"); c.className="cell"; if(cell){ c.classList.add(cell.type); if(row.isComplete)c.classList.add("complete"); c.innerHTML=tileText(cell); } d.appendChild(c); });
+
+function showTumo(t){ 
+    let el=document.getElementById("tumo"); 
+    el.className=`tile-graphic ${t.type}`; 
+    el.innerHTML=tileText(t); 
+}
+
+function tileText(t){ 
+    let label = t.type === "man" ? "萬" : "●";
+    let numStr = t.type === "man" ? kanji[t.num] : t.num;
+    return `<span>${numStr}</span><span class="suit-label">${label}</span>`;
+}
+
+function drawB(id, playerObj){
+    const el=document.getElementById(id); 
+    el.innerHTML="";
+    playerObj.board.forEach(row=>{
+        let d=document.createElement("div"); 
+        d.className="grid";
+        row.forEach(cell=>{ 
+            let c=document.createElement("div"); 
+            c.className="cell"; 
+            if(cell){ 
+                c.classList.add(cell.type); 
+                c.innerHTML=tileText(cell); 
+            } 
+            if(row.isComplete) c.classList.add("complete"); 
+            else if(row.isReach) c.classList.add("reach"); 
+            d.appendChild(c); 
+        });
         el.appendChild(d);
     });
 }
-function updateUI(){ drawB("playerBoard",player.board); drawB("cpuBoard",cpu.board); }
-initDeck(); updateUI(); gameTimer=setInterval(gameLoop,850);
+
+function updateUI(){ drawB("playerBoard",player); drawB("cpuBoard",cpu); }
+
+document.body.addEventListener('click', startGame, {once:true});
+updateUI();
 </script>
 </body>
 </html>
